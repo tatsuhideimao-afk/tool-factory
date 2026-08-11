@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>PDF結合ツール</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>PDF結合</h1>
+      <input type="file" id="files" accept="application/pdf,.pdf" multiple />
+      <ol id="list"></ol>
+      <div class="controls">
+        <input type="text" id="name" value="merged.pdf" />
+        <button id="merge" type="button">結合</button>
+        <button id="clear" type="button">クリア</button>
+      </div>
+      <p id="status" role="status" aria-live="polite"></p>
+      <p class="note">ファイルは外部に送信されません。すべてブラウザ内で処理されます。</p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

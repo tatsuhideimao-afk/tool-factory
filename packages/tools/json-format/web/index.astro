@@ -1,0 +1,115 @@
+---
+/**
+ * JSON整形ツールの Web 版 UI。
+ * ロジックは ../core.ts（拡張版と共有）。このファイルは入出力の配線だけを持つ。
+ */
+---
+
+<form class="tool" data-testid="tool-json-format" autocomplete="off">
+  <div class="tool__panes">
+    <label class="tool__pane">
+      <span class="tool__label">入力</span>
+      <textarea
+        id="jf-input"
+        data-testid="jf-input"
+        rows="14"
+        spellcheck="false"
+        placeholder={'{"name":"alice","tags":["a","b"]}'}></textarea>
+    </label>
+
+    <label class="tool__pane">
+      <span class="tool__label">出力</span>
+      <textarea
+        id="jf-output"
+        data-testid="jf-output"
+        rows="14"
+        spellcheck="false"
+        readonly></textarea>
+    </label>
+  </div>
+
+  <div class="tool__controls">
+    <label>
+      インデント
+      <select id="jf-indent" data-testid="jf-indent">
+        <option value="2">スペース2</option>
+        <option value="4">スペース4</option>
+        <option value="tab">タブ</option>
+      </select>
+    </label>
+
+    <label class="tool__check">
+      <input type="checkbox" id="jf-sort" data-testid="jf-sort" />
+      キーを辞書順に並べ替える
+    </label>
+
+    <button type="submit" data-testid="jf-format">整形する</button>
+    <button type="button" id="jf-minify" data-testid="jf-minify">圧縮する</button>
+    <button type="button" id="jf-copy" data-testid="jf-copy">コピー</button>
+    <button type="button" id="jf-clear" data-testid="jf-clear">クリア</button>
+  </div>
+
+  <p class="tool__status" data-testid="jf-status" role="status" aria-live="polite"></p>
+</form>
+
+<script>
+  import { formatJson, minifyJson, type IndentStyle } from "../core.ts";
+
+  const form = document.querySelector<HTMLFormElement>("[data-testid='tool-json-format']");
+  if (form) {
+    const input = form.querySelector<HTMLTextAreaElement>("#jf-input")!;
+    const output = form.querySelector<HTMLTextAreaElement>("#jf-output")!;
+    const indent = form.querySelector<HTMLSelectElement>("#jf-indent")!;
+    const sort = form.querySelector<HTMLInputElement>("#jf-sort")!;
+    const status = form.querySelector<HTMLParagraphElement>("[data-testid='jf-status']")!;
+
+    const setStatus = (text: string, isError: boolean) => {
+      status.textContent = text;
+      status.dataset.state = isError ? "error" : "ok";
+    };
+
+    const readIndent = (): IndentStyle =>
+      indent.value === "tab" ? "tab" : (Number(indent.value) as 2 | 4);
+
+    const apply = (result: ReturnType<typeof formatJson>) => {
+      if (result.ok) {
+        output.value = result.text;
+        setStatus(`OK: ${result.text.length.toLocaleString("ja-JP")}文字`, false);
+        return;
+      }
+      output.value = "";
+      const where =
+        result.error.line === null
+          ? ""
+          : `（${result.error.line}行${result.error.column}文字目付近）`;
+      setStatus(`エラー: ${result.error.message}${where}`, true);
+    };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      apply(formatJson(input.value, { indent: readIndent(), sortKeys: sort.checked }));
+    });
+
+    form.querySelector("#jf-minify")!.addEventListener("click", () => {
+      apply(minifyJson(input.value));
+    });
+
+    form.querySelector("#jf-copy")!.addEventListener("click", async () => {
+      if (output.value === "") return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        setStatus("コピーしました", false);
+      } catch {
+        output.select();
+        setStatus("コピーできませんでした。手動で選択してください", true);
+      }
+    });
+
+    form.querySelector("#jf-clear")!.addEventListener("click", () => {
+      input.value = "";
+      output.value = "";
+      setStatus("", false);
+      input.focus();
+    });
+  }
+</script>

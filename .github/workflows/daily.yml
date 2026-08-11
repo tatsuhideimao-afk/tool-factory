@@ -1,0 +1,62 @@
+name: Daily measure & report
+
+# 仕様 2章: 毎日 03:00 JST（= 18:00 UTC）に計測と判定を回す。
+# Phase 1 で動かすのは 06-measure（Web版のみ）と 07-report の通知だけ。
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-metrics
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    name: 計測 → 判定 → 通知
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 06-measure（Cloudflare Web Analytics）
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_WEB_ANALYTICS_SITE_TAG: ${{ secrets.CF_WEB_ANALYTICS_SITE_TAG }}
+          CF_ANALYTICS_API_TOKEN: ${{ secrets.CF_ANALYTICS_API_TOKEN }}
+        run: pnpm measure
+
+      # 計測が落ちても判定と通知は行う（落ちた事実が通知に出る）
+      - name: 07-report（判定と Discord 通知）
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: pnpm report
+
+      - name: 計測結果をコミット
+        if: always()
+        run: |
+          if [ -z "$(git status --porcelain -- data)" ]; then
+            echo "変更なし"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "chore(metrics): $(date -u +%Y-%m-%d) の計測結果"
+          git push

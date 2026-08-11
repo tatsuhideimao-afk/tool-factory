@@ -1,0 +1,20 @@
+---
+import ToolLayout from "../../layouts/ToolLayout.astro";
+import { tools } from "../../generated/tools.ts";
+
+export function getStaticPaths() {
+  // retired になったツールはページごと消える（sitemap からも自動で外れる）
+  return tools
+    .filter((t) => t.published)
+    .map((t) => ({ params: { slug: t.meta.slug } }));
+}
+
+const { slug } = Astro.params;
+const entry = tools.find((t) => t.meta.slug === slug);
+if (!entry) throw new Error(`未登録のツールです: ${slug}`);
+const Ui = entry.Ui;
+---
+
+<ToolLayout meta={entry.meta}>
+  <Ui />
+</ToolLayout>

@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: 品質ゲート（typecheck / unit / build / e2e）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: 依存をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: Playwright のブラウザを取得
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 品質ゲート
+        run: pnpm gates
+
+      - name: 拡張パッケージのビルド確認
+        run: |
+          pnpm assets
+          pnpm ext:build
+
+      - name: 失敗時のレポートを保存
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

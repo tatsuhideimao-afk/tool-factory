@@ -1,0 +1,48 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "../lib/site.ts";
+import { tools } from "../generated/tools.ts";
+
+const published = tools.filter((t) => t.published);
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: site.siteName,
+  url: `${site.origin}/`,
+  hasPart: published.map((t) => ({
+    "@type": "SoftwareApplication",
+    name: t.meta.title,
+    url: new URL(`/t/${t.meta.slug}/`, site.origin).href,
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Any",
+  })),
+};
+---
+
+<BaseLayout
+  title={`${site.siteName} — ブラウザだけで完結する無料ツール`}
+  description="インストール不要・登録不要で使えるWebツール集。すべての処理をブラウザ内で行うため、入力したデータは外部に送信されません。"
+  path="/"
+  jsonLd={jsonLd}
+>
+  <h1>ブラウザだけで完結する無料ツール</h1>
+  <p class="lede">
+    インストールも登録も不要です。処理はすべてお使いのブラウザの中で行われるため、入力したデータやファイルが外部へ送信されることはありません。
+  </p>
+
+  <ul class="tool-list">
+    {
+      published.map((t) => (
+        <li>
+          <a href={`/t/${t.meta.slug}/`}>
+            <strong>{t.meta.title}</strong>
+            <span>{t.meta.tagline}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  {published.length === 0 && <p>公開中のツールはまだありません。</p>}
+</BaseLayout>

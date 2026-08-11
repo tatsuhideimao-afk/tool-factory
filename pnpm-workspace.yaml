@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/shared"
+
+# pnpm 10 は既定でインストール時スクリプトを実行しない。
+# ネイティブビルドが必要なものだけ明示的に許可する。
+onlyBuiltDependencies:
+  - better-sqlite3
+  - esbuild
+  - sharp

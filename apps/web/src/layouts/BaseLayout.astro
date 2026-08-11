@@ -1,0 +1,323 @@
+---
+import { site } from "../lib/site.ts";
+
+interface Props {
+  title: string;
+  description: string;
+  /** 先頭スラッシュ付きの正規パス。例: /t/json-format/ */
+  path: string;
+  /** JSON-LD をそのまま埋め込む場合に渡す */
+  jsonLd?: Record<string, unknown>;
+  /** 先頭スラッシュ付き。04-assets が /og/<slug>.png を生成する */
+  ogImagePath?: string;
+}
+
+const { title, description, path, jsonLd, ogImagePath } = Astro.props;
+const canonical = new URL(path, site.origin).href;
+const ogImage = new URL(ogImagePath ?? "/og/site.png", site.origin).href;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.siteName} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    {
+      jsonLd && (
+        <script
+          type="application/ld+json"
+          is:inline
+          set:html={JSON.stringify(jsonLd)}
+        />
+      )
+    }
+
+    {
+      /*
+        Cloudflare Web Analytics。Cookieless なので同意バナーは不要。
+        トークン未設定（Phase 1 開始前）のときは何も読み込まない。
+      */
+    }
+    {
+      site.webAnalyticsToken && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={`{"token": "${site.webAnalyticsToken}"}`}
+        />
+      )
+    }
+  </head>
+
+  <body>
+    <header class="site-header">
+      <a class="site-header__brand" href="/">{site.siteName}</a>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <nav>
+        <a href="/">ツール一覧</a>
+        <a href="/privacy/">プライバシーポリシー</a>
+      </nav>
+      <p>
+        すべてのツールはブラウザ内だけで動作します。入力したデータがサーバへ送信されることはありません。
+      </p>
+    </footer>
+
+    <style is:global>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #16181d;
+        --muted: #5b6270;
+        --line: #d9dde5;
+        --accent: #1a56db;
+        --error: #b3261e;
+        --surface: #f6f7f9;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161a;
+          --fg: #e8eaed;
+          --muted: #9aa2b1;
+          --line: #2c3037;
+          --accent: #7aa2f7;
+          --error: #f2857c;
+          --surface: #1c1f25;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          system-ui, -apple-system, "Segoe UI", "Hiragino Sans",
+          "Noto Sans JP", sans-serif;
+        line-height: 1.7;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      main {
+        flex: 1;
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      h1 {
+        font-size: 1.6rem;
+        line-height: 1.4;
+        margin: 0 0 8px;
+      }
+
+      h2 {
+        font-size: 1.15rem;
+        margin: 32px 0 8px;
+      }
+
+      .site-header {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .site-header__brand {
+        display: inline-block;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 12px 16px;
+        font-weight: 700;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .site-footer {
+        border-top: 1px solid var(--line);
+        padding: 16px;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .site-footer nav {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .lede {
+        color: var(--muted);
+        margin: 0 0 20px;
+      }
+
+      /* ---- ツールUIの共通スタイル（packages/tools/*/web/index.astro が使う） ---- */
+      .tool {
+        display: grid;
+        gap: 12px;
+        margin: 0 0 24px;
+      }
+
+      .tool__panes {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 720px) {
+        .tool__panes {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .tool__pane {
+        display: grid;
+        gap: 4px;
+      }
+
+      .tool__label {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .tool textarea,
+      .tool input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--fg);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.85rem;
+      }
+
+      .tool textarea {
+        resize: vertical;
+      }
+
+      .tool__controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+        font-size: 0.9rem;
+      }
+
+      .tool__check {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+      }
+
+      .tool button {
+        padding: 6px 14px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .tool button[type="submit"] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+      }
+
+      .tool button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      .tool__list {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 0.9rem;
+      }
+
+      .tool__list li {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+      }
+
+      .tool__status {
+        margin: 0;
+        min-height: 1.6em;
+        font-size: 0.9rem;
+      }
+
+      .tool__status[data-state="error"] {
+        color: var(--error);
+      }
+
+      .steps {
+        padding-left: 20px;
+      }
+
+      .tool-list {
+        list-style: none;
+        padding: 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      .tool-list a {
+        display: block;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .tool-list a:hover {
+        border-color: var(--accent);
+      }
+
+      .tool-list strong {
+        display: block;
+        color: var(--accent);
+      }
+
+      .tool-list span {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+    </style>
+  </body>
+</html>

@@ -1,0 +1,128 @@
+---
+/**
+ * CSV⇄JSON変換ツールの Web 版 UI。
+ * ロジックは ../core.ts（拡張版と共有）。
+ */
+---
+
+<form class="tool" data-testid="tool-csv-json" autocomplete="off">
+  <div class="tool__panes">
+    <label class="tool__pane">
+      <span class="tool__label">入力</span>
+      <textarea
+        id="cj-input"
+        data-testid="cj-input"
+        rows="14"
+        spellcheck="false"
+        placeholder="name,age&#10;alice,30"></textarea>
+    </label>
+
+    <label class="tool__pane">
+      <span class="tool__label">出力</span>
+      <textarea
+        id="cj-output"
+        data-testid="cj-output"
+        rows="14"
+        spellcheck="false"
+        readonly></textarea>
+    </label>
+  </div>
+
+  <div class="tool__controls">
+    <label>
+      変換方向
+      <select id="cj-direction" data-testid="cj-direction">
+        <option value="csv2json">CSV → JSON</option>
+        <option value="json2csv">JSON → CSV</option>
+      </select>
+    </label>
+
+    <label>
+      区切り文字
+      <select id="cj-delimiter" data-testid="cj-delimiter">
+        <option value=",">カンマ</option>
+        <option value="&#9;">タブ</option>
+        <option value=";">セミコロン</option>
+      </select>
+    </label>
+
+    <label class="tool__check">
+      <input type="checkbox" id="cj-header" data-testid="cj-header" checked />
+      1行目をヘッダとして扱う
+    </label>
+
+    <label class="tool__check">
+      <input type="checkbox" id="cj-infer" data-testid="cj-infer" checked />
+      数値・真偽値を型変換する
+    </label>
+
+    <button type="submit" data-testid="cj-convert">変換する</button>
+    <button type="button" id="cj-copy" data-testid="cj-copy">コピー</button>
+    <button type="button" id="cj-clear" data-testid="cj-clear">クリア</button>
+  </div>
+
+  <p class="tool__status" data-testid="cj-status" role="status" aria-live="polite"></p>
+</form>
+
+<script>
+  import { csvToJson, jsonTextToCsv } from "../core.ts";
+
+  const form = document.querySelector<HTMLFormElement>("[data-testid='tool-csv-json']");
+  if (form) {
+    const input = form.querySelector<HTMLTextAreaElement>("#cj-input")!;
+    const output = form.querySelector<HTMLTextAreaElement>("#cj-output")!;
+    const direction = form.querySelector<HTMLSelectElement>("#cj-direction")!;
+    const delimiter = form.querySelector<HTMLSelectElement>("#cj-delimiter")!;
+    const header = form.querySelector<HTMLInputElement>("#cj-header")!;
+    const infer = form.querySelector<HTMLInputElement>("#cj-infer")!;
+    const status = form.querySelector<HTMLParagraphElement>("[data-testid='cj-status']")!;
+
+    const setStatus = (text: string, isError: boolean) => {
+      status.textContent = text;
+      status.dataset.state = isError ? "error" : "ok";
+    };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      try {
+        if (direction.value === "csv2json") {
+          const records = csvToJson(input.value, {
+            delimiter: delimiter.value,
+            hasHeader: header.checked,
+            inferTypes: infer.checked,
+          });
+          output.value = JSON.stringify(records, null, 2);
+          setStatus(`${records.length}件のレコードに変換しました`, false);
+        } else {
+          output.value = jsonTextToCsv(input.value, {
+            delimiter: delimiter.value,
+            header: header.checked,
+            newline: "\n",
+          });
+          setStatus("CSVに変換しました", false);
+        }
+      } catch (err) {
+        output.value = "";
+        setStatus(`エラー: ${err instanceof Error ? err.message : String(err)}`, true);
+      }
+    });
+
+    form.querySelector("#cj-copy")!.addEventListener("click", async () => {
+      if (output.value === "") return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        setStatus("コピーしました", false);
+      } catch {
+        output.select();
+        setStatus("コピーできませんでした。手動で選択してください", true);
+      }
+    });
+
+    form.querySelector("#cj-clear")!.addEventListener("click", () => {
+      input.value = "";
+      output.value = "";
+      setStatus("", false);
+      input.focus();
+    });
+  }
+</script>

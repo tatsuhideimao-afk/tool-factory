@@ -1,0 +1,52 @@
+---
+import type { ToolMeta } from "@tf/shared";
+import BaseLayout from "./BaseLayout.astro";
+import { site } from "../lib/site.ts";
+
+interface Props {
+  meta: ToolMeta;
+}
+
+const { meta } = Astro.props;
+const path = `/t/${meta.slug}/`;
+
+// 仕様 5.4: Web版に SoftwareApplication の JSON-LD を出力する
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: meta.title,
+  description: meta.tagline,
+  url: new URL(path, site.origin).href,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "JPY" },
+  isAccessibleForFree: true,
+  datePublished: meta.createdAt.slice(0, 10),
+};
+---
+
+<BaseLayout
+  title={`${meta.title} | ${site.siteName}`}
+  description={meta.tagline}
+  path={path}
+  ogImagePath={`/og/${meta.slug}.png`}
+  jsonLd={jsonLd}
+>
+  <h1>{meta.title}</h1>
+  <p class="lede">{meta.tagline}</p>
+
+  <slot />
+
+  <h2>使い方</h2>
+  <ol class="steps">
+    {meta.steps.map((step) => <li>{step}</li>)}
+  </ol>
+
+  <h2>データの取り扱い</h2>
+  <p>
+    このツールの処理はすべてお使いのブラウザの中で完結します。入力した内容やファイルがサーバへ送信・保存されることはありません。詳しくは<a
+      href="/privacy/">プライバシーポリシー</a
+    >をご覧ください。
+  </p>
+</BaseLayout>

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "CSV⇄JSON変換ツール",
+  "short_name": "CSV JSON変換",
+  "version": "1.0.0",
+  "description": "CSVをJSON配列に、JSON配列をCSVに相互変換します。データは外部に送信しません。",
+  "action": {
+    "default_title": "CSV⇄JSON変換ツール",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

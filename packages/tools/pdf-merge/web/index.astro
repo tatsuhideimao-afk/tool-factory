@@ -1,0 +1,164 @@
+---
+/**
+ * PDF結合ツールの Web 版 UI。
+ * ロジックは ../core.ts（拡張版と共有）。ファイルはブラウザ内でのみ読み込む。
+ */
+---
+
+<form class="tool" data-testid="tool-pdf-merge" autocomplete="off">
+  <label class="tool__pane">
+    <span class="tool__label">PDFファイル（複数選択できます）</span>
+    <input
+      type="file"
+      id="pm-files"
+      data-testid="pm-files"
+      accept="application/pdf,.pdf"
+      multiple
+    />
+  </label>
+
+  <ol class="tool__list" id="pm-list" data-testid="pm-list"></ol>
+
+  <div class="tool__controls">
+    <label>
+      出力ファイル名
+      <input
+        type="text"
+        id="pm-name"
+        data-testid="pm-name"
+        value="merged.pdf"
+        size="18"
+      />
+    </label>
+
+    <button type="submit" data-testid="pm-merge">結合する</button>
+    <button type="button" id="pm-clear" data-testid="pm-clear">クリア</button>
+  </div>
+
+  <p class="tool__status" data-testid="pm-status" role="status" aria-live="polite"></p>
+</form>
+
+<script>
+  import { countPages, mergePdfs, type PdfSource } from "../core.ts";
+
+  const form = document.querySelector<HTMLFormElement>("[data-testid='tool-pdf-merge']");
+  if (form) {
+    const filesInput = form.querySelector<HTMLInputElement>("#pm-files")!;
+    const list = form.querySelector<HTMLOListElement>("#pm-list")!;
+    const nameInput = form.querySelector<HTMLInputElement>("#pm-name")!;
+    const status = form.querySelector<HTMLParagraphElement>("[data-testid='pm-status']")!;
+
+    type Entry = { name: string; bytes: Uint8Array; pages: number };
+    let entries: Entry[] = [];
+
+    const setStatus = (text: string, isError: boolean) => {
+      status.textContent = text;
+      status.dataset.state = isError ? "error" : "ok";
+    };
+
+    const render = () => {
+      list.replaceChildren();
+      entries.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.dataset.testid = "pm-item";
+
+        const label = document.createElement("span");
+        label.textContent = `${entry.name}（${entry.pages}ページ）`;
+        li.append(label);
+
+        const range = document.createElement("input");
+        range.type = "text";
+        range.placeholder = "全ページ";
+        range.size = 10;
+        range.dataset.role = "range";
+        range.setAttribute("aria-label", `${entry.name} のページ範囲`);
+        li.append(range);
+
+        const up = document.createElement("button");
+        up.type = "button";
+        up.textContent = "↑";
+        up.setAttribute("aria-label", `${entry.name} を上へ`);
+        up.disabled = index === 0;
+        up.addEventListener("click", () => {
+          const prev = entries[index - 1]!;
+          entries[index - 1] = entries[index]!;
+          entries[index] = prev;
+          render();
+        });
+        li.append(up);
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "削除";
+        remove.setAttribute("aria-label", `${entry.name} を削除`);
+        remove.addEventListener("click", () => {
+          entries.splice(index, 1);
+          render();
+        });
+        li.append(remove);
+
+        list.append(li);
+      });
+    };
+
+    filesInput.addEventListener("change", async () => {
+      const picked = Array.from(filesInput.files ?? []);
+      if (picked.length === 0) return;
+      setStatus("読み込み中…", false);
+      try {
+        for (const file of picked) {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          entries.push({ name: file.name, bytes, pages: await countPages(bytes) });
+        }
+        render();
+        const total = entries.reduce((sum, e) => sum + e.pages, 0);
+        setStatus(`${entries.length}ファイル / 合計${total}ページ`, false);
+      } catch (err) {
+        setStatus(
+          `読み込みに失敗しました: ${err instanceof Error ? err.message : String(err)}`,
+          true,
+        );
+      } finally {
+        filesInput.value = "";
+      }
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (entries.length === 0) {
+        setStatus("PDFを選んでください", true);
+        return;
+      }
+      const ranges = Array.from(
+        list.querySelectorAll<HTMLInputElement>("input[data-role='range']"),
+      );
+      const sources: PdfSource[] = entries.map((entry, i) => ({
+        name: entry.name,
+        bytes: entry.bytes,
+        pageRange: ranges[i]?.value ?? "",
+      }));
+
+      setStatus("結合中…", false);
+      try {
+        const filename = nameInput.value.trim() || "merged.pdf";
+        const merged = await mergePdfs(sources, { title: filename });
+        const blob = new Blob([merged as BlobPart], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatus("結合しました。ダウンロードを確認してください", false);
+      } catch (err) {
+        setStatus(`エラー: ${err instanceof Error ? err.message : String(err)}`, true);
+      }
+    });
+
+    form.querySelector("#pm-clear")!.addEventListener("click", () => {
+      entries = [];
+      render();
+      setStatus("", false);
+    });
+  }
+</script>

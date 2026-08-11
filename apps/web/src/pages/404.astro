@@ -1,0 +1,16 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "../lib/site.ts";
+---
+
+<BaseLayout
+  title={`ページが見つかりません | ${site.siteName}`}
+  description="お探しのページは見つかりませんでした。"
+  path="/404/"
+>
+  <h1>ページが見つかりません</h1>
+  <p class="lede">
+    URLが変更されたか、公開を終了したツールの可能性があります。
+  </p>
+  <p><a href="/">ツール一覧へ戻る</a></p>
+</BaseLayout>

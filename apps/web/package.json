@@ -1,0 +1,17 @@
+{
+  "name": "@tf/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@tf/shared": "workspace:*",
+    "astro": "^5.2.0",
+    "pdf-lib": "^1.17.1"
+  }
+}

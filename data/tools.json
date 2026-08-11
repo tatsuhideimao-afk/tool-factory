@@ -1,0 +1,53 @@
+[
+  {
+    "slug": "csv-json",
+    "title": "CSV⇄JSON変換ツール",
+    "candidate_id": null,
+    "created_at": "2026-08-11T00:00:00Z",
+    "web": {
+      "url": "https://example.com/t/csv-json/",
+      "deployed_at": null,
+      "monetized": false
+    },
+    "extension": {
+      "status": "none",
+      "item_id": null,
+      "published_at": null
+    },
+    "lifecycle": "measuring"
+  },
+  {
+    "slug": "json-format",
+    "title": "JSON整形・検証ツール",
+    "candidate_id": null,
+    "created_at": "2026-08-11T00:00:00Z",
+    "web": {
+      "url": "https://example.com/t/json-format/",
+      "deployed_at": null,
+      "monetized": false
+    },
+    "extension": {
+      "status": "none",
+      "item_id": null,
+      "published_at": null
+    },
+    "lifecycle": "measuring"
+  },
+  {
+    "slug": "pdf-merge",
+    "title": "PDF結合ツール",
+    "candidate_id": null,
+    "created_at": "2026-08-11T00:00:00Z",
+    "web": {
+      "url": "https://example.com/t/pdf-merge/",
+      "deployed_at": null,
+      "monetized": false
+    },
+    "extension": {
+      "status": "none",
+      "item_id": null,
+      "published_at": null
+    },
+    "lifecycle": "measuring"
+  }
+]

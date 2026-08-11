@@ -1,0 +1,46 @@
+{
+  "name": "tool-factory",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Webツール／Chrome拡張の量産パイプライン (SPEC v1.0)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "gen": "tsx scripts/gen-registry.ts",
+    "pretypecheck": "pnpm gen",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prebuild": "pnpm gen",
+    "build": "pnpm --filter @tf/web build",
+    "dev": "pnpm gen && pnpm --filter @tf/web dev",
+    "preview": "pnpm --filter @tf/web preview",
+    "test:e2e": "playwright test",
+    "gates": "tsx scripts/gates/run-gates.ts",
+    "generate": "tsx scripts/03-generate.ts",
+    "assets": "tsx scripts/04-assets.ts",
+    "deploy:web": "tsx scripts/05-deploy.ts",
+    "measure": "tsx scripts/06-measure.ts",
+    "report": "tsx scripts/07-report.ts",
+    "ext:build": "tsx scripts/build-extensions.ts"
+  },
+  "dependencies": {
+    "@tf/shared": "workspace:*",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "@playwright/test": "^1.56.0",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.10.0",
+    "better-sqlite3": "^11.7.0",
+    "esbuild": "^0.24.0",
+    "sharp": "^0.34.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "yaml": "^2.6.1"
+  }
+}
