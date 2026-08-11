@@ -106,5 +106,6 @@ docs/                      仕様・運用手順・Phase 1 プロトコル
 
 ## 詳しくは
 
+- [`docs/SETUP_MOBILE.md`](docs/SETUP_MOBILE.md) — スマホだけで公開まで到達する手順（PC不要）
 - [`docs/PHASE1.md`](docs/PHASE1.md) — 30日実測プロトコルと、事前に固定した判定基準
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md) — 鍵の用意、Cloudflare の設定、拡張の手動登録手順

@@ -9,8 +9,8 @@
  */
 import { uniqueVisitorsBySlug, openDb, recordRun, upsertDaily } from "./lib/db.ts";
 import type { DailyMetric } from "./lib/db.ts";
-import { listToolSlugs } from "@tf/shared/node";
-import { info, requireEnv, warn } from "./lib/log.ts";
+import { listToolSlugs, loadSiteConfig } from "@tf/shared/node";
+import { info, optionalEnv, requireEnv, warn } from "./lib/log.ts";
 
 const STEP = "06-measure";
 const GRAPHQL_ENDPOINT = "https://api.cloudflare.com/client/v4/graphql";
@@ -92,8 +92,17 @@ async function main(): Promise<void> {
   const db = openDb();
 
   const accountTag = requireEnv("CLOUDFLARE_ACCOUNT_ID", "Analytics のアカウント指定に必要");
-  const siteTag = requireEnv("CF_WEB_ANALYTICS_SITE_TAG", "計測対象サイトの指定に必要");
   const apiToken = requireEnv("CF_ANALYTICS_API_TOKEN", "Analytics GraphQL API の認証に必要");
+
+  // siteTag はビーコンの token と同じ値。config/site.json に既に入れてあるので、
+  // Secret を省略した場合はそちらを使う（登録する Secret を1つ減らすため）。
+  const siteTag = optionalEnv("CF_WEB_ANALYTICS_SITE_TAG") ?? loadSiteConfig().webAnalyticsToken;
+  if (!siteTag) {
+    throw new Error(
+      "計測対象サイトを特定できません。config/site.json の webAnalyticsToken を埋めるか、" +
+        "Secret の CF_WEB_ANALYTICS_SITE_TAG を設定してください。",
+    );
+  }
 
   try {
     const groups = await fetchDailyRum(accountTag, siteTag, date, apiToken);

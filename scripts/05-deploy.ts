@@ -62,6 +62,21 @@ function main(): void {
     return;
   }
 
+  // Pages プロジェクトが無ければ作る。ダッシュボードでの Direct Upload 作成には
+  // 初回にファイルをドラッグする操作が要るが、これがあればスマホからでも
+  // Secrets を入れてワークフローを回すだけで済む。
+  // 既にある場合はエラーになるので、その失敗は無視してよい。
+  info(STEP, `Pages プロジェクト ${project} の存在を確認します（無ければ作成）`);
+  run("pnpm", [
+    "dlx",
+    "wrangler@4",
+    "pages",
+    "project",
+    "create",
+    project,
+    "--production-branch=main",
+  ]);
+
   const status = run("pnpm", [
     "dlx",
     "wrangler@4",

@@ -5,30 +5,37 @@
 
 ---
 
+> **スマホだけで進める場合は [`SETUP_MOBILE.md`](SETUP_MOBILE.md) を見てください。**
+> 画面ごとの操作順に並べ替えた同じ内容です。
+
 ## 1. 初期セットアップ（1回だけ）
 
-### 1-1. ドメイン
+### 1-1. 公開URLを決める
 
-任意のレジストラで1つ取得する。Web版はすべてこのドメインのサブディレクトリに置く。
-取得したら `config/site.json` の `origin` を書き換える（末尾スラッシュなし）。
+`config/site.json` の `origin` に、公開先のオリジンを書く（末尾スラッシュなし）。
 
-```json
-{ "origin": "https://example.com", ... }
-```
+- **独自ドメイン** — 任意のレジストラで取得（約1,500円/年）。SEO上はこちらが本命
+- **`https://<pagesProject>.pages.dev`** — Cloudflare Pages の無料サブドメイン。0円で始められる
+
+**どちらにするかは Day 0 より前に決めきること。** 途中で `origin` を変えると canonical と
+sitemap のURLが全部変わり、30日実測のベースラインが取り直しになる。
 
 ### 1-2. Cloudflare Pages
 
-1. Cloudflare にログインし、Workers & Pages → Create → Pages → **Direct Upload** を選ぶ
-   （GitHub連携ではなく Direct Upload。`wrangler pages deploy` から流し込むため）
-2. プロジェクト名を決める → `config/site.json` の `pagesProject` に同じ名前を書く
-3. カスタムドメインを紐づける
+**ダッシュボードでの事前作成は不要。** `05-deploy` が `wrangler pages project create` を
+先に実行するので、`config/site.json` の `pagesProject` に使いたい名前を書いて
+Deploy ワークフローを回せば、プロジェクトごと作られる（既にある場合その失敗は無視される）。
+
+独自ドメインを使う場合だけ、作成後に Pages プロジェクトの Custom domains から紐づける。
 
 ### 1-3. Cloudflare Web Analytics
 
 1. Cloudflare → Analytics & Logs → Web Analytics → Add a site
-2. 対象ドメインを登録すると JS スニペットが出る。その中の `token` の値を
-   `config/site.json` の `webAnalyticsToken` に入れる（この値は公開されて問題ない）
-3. URL に含まれる **site tag** を控える → Secrets の `CF_WEB_ANALYTICS_SITE_TAG`
+2. 対象ドメイン（`<project>.pages.dev` でも可）を登録すると JS スニペットが出る。
+   その中の `token` の値を `config/site.json` の `webAnalyticsToken` に入れる
+   （ページに埋め込まれる公開値なので、リポジトリに置いて問題ない）
+3. `06-measure` はこの値を GraphQL の `siteTag` としても使う。
+   もし別の値だった場合だけ、Secrets に `CF_WEB_ANALYTICS_SITE_TAG` を入れればそちらが優先される。
 
 Cookieless なので同意バナーは不要。
 
@@ -52,12 +59,12 @@ Cloudflare → My Profile → API Tokens で2つ作る。権限は必要最小�
 リポジトリの Settings → Secrets and variables → Actions に登録する。
 
 ```
-CLOUDFLARE_API_TOKEN
-CLOUDFLARE_ACCOUNT_ID
-CF_ANALYTICS_API_TOKEN
-CF_WEB_ANALYTICS_SITE_TAG
-DISCORD_WEBHOOK_URL
-ANTHROPIC_API_KEY          # 03-generate / 04-assets を使うときだけ
+CLOUDFLARE_API_TOKEN        # 必須（デプロイ）
+CLOUDFLARE_ACCOUNT_ID       # 必須（デプロイ・計測）
+CF_ANALYTICS_API_TOKEN      # 必須（計測）
+DISCORD_WEBHOOK_URL         # 任意（未設定ならログに出るだけ）
+CF_WEB_ANALYTICS_SITE_TAG   # 任意（site.json の webAnalyticsToken と違うときだけ）
+ANTHROPIC_API_KEY           # 任意（03-generate / 04-assets を使うときだけ）
 ```
 
 `ANTHROPIC_API_KEY` が無くても Phase 1 は完走する（説明文はテンプレートで生成される）。
