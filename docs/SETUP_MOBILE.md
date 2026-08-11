@@ -10,7 +10,7 @@ PCなしで公開まで到達するための手順書。所要 30〜45分。
   - Safari: アドレスバー左の「ぁあ」→ デスクトップ用Webサイトを表示
   - Chrome: 右上「⋮」→ PC版サイト
 - GitHub は**アプリではなくブラウザ**で開いてください（アプリはファイル編集と Secrets 登録ができません）
-- コピペする値が5つほど出てきます。メモアプリを1つ開いておくと楽です
+- コピペする値が3つ出てきます。メモアプリを1つ開いておくと楽です
 
 ---
 
@@ -39,7 +39,7 @@ A を選んだ場合、公開URLは `https://tool-factory.pages.dev` になり�
 
 ---
 
-## Step 2. Web Analytics を追加して token を控える
+## Step 2. Web Analytics にサイトを追加する
 
 サイトがまだ公開されていなくても登録できます。先にやっておくと再デプロイが1回減ります。
 
@@ -47,15 +47,13 @@ A を選んだ場合、公開URLは `https://tool-factory.pages.dev` になり�
 2. **Add a site** をタップ
 3. ホスト名に Step 0 で決めたドメインを入力
    （A なら `tool-factory.pages.dev`、B なら取得したドメイン）
-4. JS スニペットが表示されます。その中の
+4. **「Enable（自動注入）」のままにしてください。**
+   ドメインが Cloudflare 上にあれば、ビーコンは自動で埋め込まれます。
+   `config/site.json` の `webAnalyticsToken` は `null` のままにすること
+   （自前でスニペットも入れると二重計測になり、ページビューが2倍になります）
 
-   ```
-   data-cf-beacon='{"token": "0123456789abcdef..."}'
-   ```
-
-   の **token の値だけ**をメモ → これを ①token と呼びます
-
-> ①token はページに埋め込まれる公開値です。リポジトリに置いて問題ありません。
+> Site Tag を控える必要はありません。自動注入モードではダッシュボードに表示されず、
+> `06-measure` が Cloudflare API から自動で引きます。
 
 ---
 
@@ -102,6 +100,8 @@ A を選んだ場合、公開URLは `https://tool-factory.pages.dev` になり�
 | `CLOUDFLARE_API_TOKEN` | ③APIトークン |
 | `CF_ANALYTICS_API_TOKEN` | ③APIトークン（同じ値でOK） |
 
+計測に必要な Site Tag は `06-measure` が API から自動取得するので、登録不要です。
+
 Discord に通知したい場合は、Discord のチャンネル設定 → 連携サービス → ウェブフック
 から URL を作り、`DISCORD_WEBHOOK_URL` としてもう1つ登録してください（任意。
 未登録でもワークフローのログに判定結果が出ます）。
@@ -122,7 +122,7 @@ GitHub のファイル画面はスマホのブラウザから直接編集でき�
      "siteName": "サイトの表示名",
      "contactEmail": "あなたのメールアドレス",
      "pagesProject": "tool-factory",
-     "webAnalyticsToken": "①token"
+     "webAnalyticsToken": null
    }
    ```
 
@@ -130,7 +130,7 @@ GitHub のファイル画面はスマホのブラウザから直接編集でき�
    - `pagesProject` — Cloudflare Pages のプロジェクト名。A を選んだ場合は
      `<pagesProject>.pages.dev` が公開URLになるので、`origin` と揃えること
    - `siteName` — ページ上部とOGPに出る名前
-   - `webAnalyticsToken` — Step 2 の ①token を **ダブルクォートで囲んで**入れる
+   - `webAnalyticsToken` — 自動注入モードなら `null` のまま（二重計測を避けるため）
 
 4. **Commit changes** → Commit directly to the `main` branch → コミット
 

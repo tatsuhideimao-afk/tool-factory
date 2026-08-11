@@ -87,22 +87,81 @@ export async function fetchDailyRum(
   return json.data?.viewer?.accounts?.[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 }
 
+/** /rum/site_info/list のレスポンス1件ぶん。フィールド名の揺れを吸収するため緩く受ける。 */
+export interface RumSiteInfo {
+  site_tag?: string;
+  siteTag?: string;
+  host?: string;
+  hostname?: string;
+}
+
+/** ホスト名が一致するサイトの site_tag を選ぶ。副作用なし。 */
+export function pickSiteTag(
+  sites: readonly RumSiteInfo[],
+  host: string,
+): string | null {
+  const normalize = (s: string): string =>
+    s.trim().toLowerCase().replace(/^www\./, "");
+  const target = normalize(host);
+  for (const site of sites) {
+    const siteHost = site.host ?? site.hostname;
+    if (siteHost && normalize(siteHost) === target) {
+      return site.site_tag ?? site.siteTag ?? null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Site Tag を Cloudflare API から引く。
+ *
+ * Web Analytics を「Enable（自動注入）」で使っていると、ダッシュボードのどこにも
+ * Site Tag が表示されない。手で控えようがないので API から取得する。
+ */
+async function discoverSiteTag(
+  accountTag: string,
+  apiToken: string,
+  origin: string,
+): Promise<string> {
+  const host = new URL(origin).hostname;
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountTag}/rum/site_info/list?per_page=100`,
+    { headers: { Authorization: `Bearer ${apiToken}` } },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Site Tag を取得できません（HTTP ${res.status}）。` +
+        `APIトークンに Account Analytics: Read の権限があるか確認してください。`,
+    );
+  }
+  const json = (await res.json()) as { result?: RumSiteInfo[] };
+  const sites = json.result ?? [];
+  const tag = pickSiteTag(sites, host);
+  if (!tag) {
+    const known = sites.map((s) => s.host ?? s.hostname ?? "?").join(", ");
+    throw new Error(
+      `${host} に対応する Web Analytics のサイトが見つかりません。` +
+        `登録済み: [${known}]。Cloudflare の Web Analytics に ${host} を追加してください。`,
+    );
+  }
+  return tag;
+}
+
 async function main(): Promise<void> {
   const date = process.argv[2] ?? previousDate();
   const db = openDb();
 
   const accountTag = requireEnv("CLOUDFLARE_ACCOUNT_ID", "Analytics のアカウント指定に必要");
   const apiToken = requireEnv("CF_ANALYTICS_API_TOKEN", "Analytics GraphQL API の認証に必要");
+  const site = loadSiteConfig();
 
-  // siteTag はビーコンの token と同じ値。config/site.json に既に入れてあるので、
-  // Secret を省略した場合はそちらを使う（登録する Secret を1つ減らすため）。
-  const siteTag = optionalEnv("CF_WEB_ANALYTICS_SITE_TAG") ?? loadSiteConfig().webAnalyticsToken;
-  if (!siteTag) {
-    throw new Error(
-      "計測対象サイトを特定できません。config/site.json の webAnalyticsToken を埋めるか、" +
-        "Secret の CF_WEB_ANALYTICS_SITE_TAG を設定してください。",
-    );
-  }
+  // 優先順位: Secret > site.json の webAnalyticsToken > API から自動取得。
+  // 自動注入モードでは Site Tag が UI に出ないので、最後の経路が主役になる。
+  const siteTag =
+    optionalEnv("CF_WEB_ANALYTICS_SITE_TAG") ??
+    site.webAnalyticsToken ??
+    (await discoverSiteTag(accountTag, apiToken, site.origin));
+  info(STEP, `計測対象の Site Tag: ${siteTag.slice(0, 8)}…`);
 
   try {
     const groups = await fetchDailyRum(accountTag, siteTag, date, apiToken);
